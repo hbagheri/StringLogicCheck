@@ -6,7 +6,7 @@
  * @copyright (c) 2017, Hans Burgman
  * @version 1.0.0
  */
-class logicParse{
+class logicParser{
     /**
      *
      * @var string saved string on work 
@@ -33,7 +33,10 @@ class logicParse{
      * OR logic
      */
     const OROP	 = "|"; 
-
+    /**
+     * NOT logic
+     */ 
+	const NOTOP = "!";
 //-------------------------------------------------------------
 	/**
          * 
@@ -62,7 +65,7 @@ class logicParse{
 		} 
 
 		if($op > 0){ die("Prantess mismatch on ".__FILE__." ".__LINE__);}
-                $replaceArray = array("true"=>1,"false"=>0,"t"=>1,"f"=>0,"or"=>"|","and"=>"&");
+                $replaceArray = array("not"=>"!","~"=>"!","true"=>1,"false"=>0,"t"=>1,"f"=>0,"or"=>"|","and"=>"&",);
                 foreach($replaceArray as $old=>$new){
                     $string = str_replace($old,$new,$string);
                 }
@@ -110,7 +113,9 @@ class logicParse{
          */
 	public function logicCheck($string=NULL){
 		$this->setString($string);
-		return $this->strPars($this->getString());
+		echo $this->getString()."<br />";
+		$result = $this->strPars($this->getString());
+		return (intval($result)==1);
 	}
 	
 	//-------------------------------------------------------------
@@ -123,45 +128,54 @@ class logicParse{
          * @return boolean
          */
 	private function strPars($str){
-		$lastOpPos = strrpos($str,self::OPENP);
-		if($lastOpPos !== FALSE){	
-			$firstClPos = strpos($str,self::CLOSEP,$lastOpPos);
-			$firstClPos = ($lastOpPos ==FALSE)?strlen($str):$firstClPos;
-			$prantesLength = $firstClPos - $lastOpPos -1;
-			$subSt = substr($str,$lastOpPos+1,$prantesLength);
-			$newVal = $this->Check_and_or($subSt);
-			$newStr = substr($str,0,$lastOpPos).$newVal.substr($str,$firstClPos+1);
-			return $this->strPars($newStr);
+		$deepPrantesesStrings = $this->getDeepestPrantes($str);
+		$subCount = count($deepPrantesesStrings[0]);
+		if($subCount > 0){
+			for($i=$subCount-1 ; $i>=0 ; $i--){
+				$substr = $deepPrantesesStrings[0][$i][0];
+				$strlen = strlen($substr);//die("$substr $strlen"." ". substr($substr,1,$strlen-2)." " .__FILE__." ".__LINE__);
+				$newSubstr = $this->clearStringParse(substr($substr,1,$strlen-2));
+				$str=substr_replace($str,$newSubstr,$deepPrantesesStrings[0][$i][1],$strlen);
+				echo "$str <br />";
+			}
+			$str = $this->strPars($str);
 		}
-		return $this->Check_and_or($str);
-	}
-	
-	//-------------------------------------------------------------
-	/**
-         * 
-         * This method will calls by strPars with a short string with tow boolean value and
-         *  only one operator. between them;
-         * @param string $str  
-         * @return boolean
-         */
-	private function Check_and_or($str){
-		$lastAndPos = strpos($str,self::ANDOP);
-		if($lastAndPos !== FALSE){
-			$subStr = substr($str,$lastAndPos-1,strlen(self::ANDOP)+2);
-			$newVal = $this->CheckAnd($subStr);
-			$newStr = substr($str,0,$lastAndPos-1).intval($newVal).substr($str,$lastAndPos+strlen(self::ANDOP)+1);
-			return $this->Check_and_or($newStr);
-		}
-		$lastOrPos = strpos($str,self::OROP);
-		if($lastOrPos !== FALSE){
-			$subStr = substr($str,$lastOrPos-1,strlen(self::OROP)+2);
-			$newVal = $this->CheckOr($subStr);
-			$newStr = substr($str,0,$lastOrPos-1).intval($newVal).substr($str,$lastOrPos+strlen(self::OROP)+1);
-			return $this->Check_and_or($newStr);
-		}
+		$str = $this->clearStringParse($str);
 		return $str;
 	}
 	
+	//-------------------------------------------------------------
+	private function getArrayWithPatern($patenr,$string){
+		preg_match_all('/\\([10&|!]+\\)/', $string, $matches, PREG_OFFSET_CAPTURE);
+		return $matches;
+	}
+	//-------------------------------------------------------------
+	
+	private function getDeepestPrantes($str){
+		$patern = "/\\([10&|!]+\\)/";
+		return $this->getArrayWithPatern($patern,$str);
+	}
+	//-------------------------------------------------------------
+	
+	private function clearStringParse($str){
+		$str = $this->checkNot($str);
+		
+		$str = $this->checkAnd($str);
+
+		$str = $this->checkOr($str);
+
+		return $str;
+	}
+	//-------------------------------------------------------------
+	private function checkNot($str){
+		$notStrs = array("!!"=>"","!1"=>"0","!0"=>"1");
+		while(strpos($str,"!")!== FALSE){
+			foreach($notStrs as $oldVal=>$newVal){
+				$str=str_replace($oldVal,$newVal,$str);
+			}
+		}
+		return $str;
+	}
 	
 	//-------------------------------------------------------------
 	/**
@@ -188,10 +202,14 @@ class logicParse{
          * @param string $string
          * @return boolean
          */
-	private function CheckAnd($string){	
-		$array = $this->getBooleanArray($string,self::ANDOP);
-		if(count($array)==1) return $array[0];
-		return ($array[0]) && ($array[1]);
+	private function CheckAnd($string){
+		$andRes = array("0&0"=>"0","0&1"=>"0","1&0"=>"0","1&1"=>"1");
+		while(strpos($string,"&")){
+			foreach($andRes as $oldVal=>$newVal){
+				$string = str_replace($oldVal,$newVal,$string);
+			}
+		}
+		return $string;
 	}
 	
 	//-------------------------------------------------------------
@@ -201,8 +219,12 @@ class logicParse{
          * @return boolean
          */
 	private function CheckOr($string){
-		
-		$array = $this->getBooleanArray($string,self::OROP);
-		return ($array[0] || $array[1]);
+		$orRes = array("0|0"=>"0","0|1"=>"1","1|0"=>"1","1&1"=>"1");
+		while(strpos($string,"|")){
+			foreach($orRes as $oldVal=>$newVal){
+				$string = str_replace($oldVal,$newVal,$string);
+			}
+		}
+		return $string;
 	}
 }
