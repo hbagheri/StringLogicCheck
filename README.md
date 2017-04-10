@@ -2,7 +2,7 @@ How to use
 
 require_once 'class/logicParse.php';
 
-$string = "1andFaLseoR(TRUEAnD0)|((((0|f)&0)|0|0)&1)|(1&(1&0))";
+$string = "1andFaLseoR(TRUEAnD0)|((((0|f)&0)|0|0)&1)|(!1&(~1&NOT0))";
 
 $stringParser = new logicParse();
 
