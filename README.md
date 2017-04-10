@@ -1,4 +1,4 @@
-Hoe to use
+How to use
 
 require_once 'class/logicParse.php';
 
