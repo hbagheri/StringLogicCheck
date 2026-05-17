@@ -8,6 +8,7 @@ word-style operators, is case-insensitive, and tolerates optional whitespace.
 (new StringLogicCheck\LogicParser())->logicCheck('1 AND (true OR !0)'); // true
 ```
 
+[![tests](https://github.com/hbagheri/StringLogicCheck/actions/workflows/test.yml/badge.svg)](https://github.com/hbagheri/StringLogicCheck/actions/workflows/test.yml)
 [![PHP](https://img.shields.io/badge/php-%E2%89%A58.1-777BB4.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
 
